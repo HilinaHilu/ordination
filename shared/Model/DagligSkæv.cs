@@ -1,4 +1,4 @@
-namespace shared.Model;
+ namespace shared.Model;
 
 public class DagligSkæv : Ordination {
     public List<Dosis> doser { get; set; } = new List<Dosis>();
@@ -9,7 +9,7 @@ public class DagligSkæv : Ordination {
     public DagligSkæv(DateTime startDen, DateTime slutDen, Laegemiddel laegemiddel, Dosis[] doser) : base(laegemiddel, startDen, slutDen) {
         this.doser = doser.ToList();
     }    
-
+	 
     public DagligSkæv() : base(null!, new DateTime(), new DateTime()) {
     }
 
@@ -25,7 +25,7 @@ public class DagligSkæv : Ordination {
 		// Sum the 'antal' for each dose in the list 'doser'
 		double totalDosis = 0;
 		foreach (var dosis in doser) {
-			totalDosis += dosis.DosisId;  // Assuming 'dosis' holds the amount for each dose
+			totalDosis += dosis.antal;  // Assuming 'dosis' holds the amount for each dose
 		}
 		return totalDosis;
 	}

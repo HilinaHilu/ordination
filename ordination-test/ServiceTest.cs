@@ -1,7 +1,7 @@
 namespace ordination_test;
 
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Service;
 using Data;
 using shared.Model;
@@ -12,11 +12,13 @@ public class ServiceTest
     private DataService service;
 
     [TestInitialize]
-    public void SetupBeforeEachTest()
+    public void Setup()
     {
-        var optionsBuilder = new DbContextOptionsBuilder<OrdinationContext>();
-        optionsBuilder.UseInMemoryDatabase(databaseName: "test-database");
-        var context = new OrdinationContext(optionsBuilder.Options);
+        var options = new DbContextOptionsBuilder<OrdinationContext>()
+            .UseInMemoryDatabase("test-db")
+            .Options;
+
+        var context = new OrdinationContext(options);
         service = new DataService(context);
         service.SeedData();
     }
@@ -24,11 +26,12 @@ public class ServiceTest
     [TestMethod]
     public void PatientsExist()
     {
-        Assert.IsNotNull(service.GetPatienter());
+        var patienter = service.GetPatienter();
+        Assert.IsTrue(patienter.Count > 0);
     }
 
     [TestMethod]
-    public void OpretDagligFast()
+    public void OpretDagligFast_OpdatererListe()
     {
         Patient patient = service.GetPatienter().First();
         Laegemiddel lm = service.GetLaegemidler().First();
@@ -36,21 +39,65 @@ public class ServiceTest
         Assert.AreEqual(1, service.GetDagligFaste().Count());
 
         service.OpretDagligFast(patient.PatientId, lm.LaegemiddelId,
-            2, 2, 1, 0, DateTime.Now, DateTime.Now.AddDays(3));
+            1, 1, 1, 1, DateTime.Today, DateTime.Today.AddDays(3));
 
-        Assert.AreEqual(2, service.GetDagligFaste().Count());
+        Assert.AreEqual(2, service.GetDagligFaste());
+    }
+    [TestMethod]
+   
+    public void AnvendOrdination_ValidPNOrdination_ReturnsSuccess()
+    {
+        var pn = service.GetPNs().First();
+        var dato = new Dato { dato = pn.startDen.AddDays(1) };
+
+        var result = service.AnvendOrdination(pn.OrdinationId, dato);
+
+        Assert.AreEqual("Dosis givet", result);
+        Assert.IsTrue(pn.dates.Any(d => d.dato.Date == dato.dato.Date));
+    }
+ // Verifying the date when the dose was applied
+    
+
+    [TestMethod]
+    public void AnvendOrdination_InvalidOrdinationId_ReturnsNotFound()
+    {
+        var result = service.AnvendOrdination(-99, new Dato { dato = DateTime.Today });
+
+        Assert.AreEqual("Ordination findes ikke", result);  // Message when invalid ordination ID
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
-    public void TestAtKodenSmiderEnException()
+    public void AnvendOrdination_InvalidOrdinationType_ReturnsInvalidType()
     {
-        // Herunder skal man så kalde noget kode,
-        // der smider en exception.
+        var dagligFast = service.GetDagligFaste().First();
+        var result = service.AnvendOrdination(dagligFast.OrdinationId, new Dato { dato = DateTime.Today });
 
-        // Hvis koden _ikke_ smider en exception,
-        // så fejler testen.
-
-        Console.WriteLine("Her kommer der ikke en exception. Testen fejler.");
+        Assert.AreEqual("Kun PN ordinationer kan anvendes.", result);
     }
+
+
+    [TestMethod]
+    public void AnvendOrdination_OutOfDateRange_ReturnsOutOfRangeError()
+    {
+        var pn = service.GetPNs().First();
+        var dato = new Dato { dato = pn.slutDen.AddDays(5) };
+
+        var result = service.AnvendOrdination(pn.OrdinationId, dato);
+
+        Assert.AreEqual("Dato er udenfor gyldighedsperioden for ordinationen.", result);
+    }
+
+
+    [TestMethod]
+    public void AnvendOrdination_DuplicateDate_ReturnsAlreadyUsedError()
+    {
+        var pn = service.GetPNs().First();
+        var dato = new Dato { dato = pn.startDen.AddDays(2) };
+
+        service.AnvendOrdination(pn.OrdinationId, dato); // First time
+        var result = service.AnvendOrdination(pn.OrdinationId, dato); // Second time
+
+        Assert.AreEqual("Ordination allerede anvendt på denne dato.", result);
+    }
+
 }

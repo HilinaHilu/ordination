@@ -16,14 +16,22 @@ public class PN : Ordination {
     /// Returnerer true hvis givesDen er inden for ordinationens gyldighedsperiode og datoen huskes
     /// Returner false ellers og datoen givesDen ignoreres
     /// </summary>
-    public bool givDosis(Dato givesDen) {
-        // TODO: Implement!
+    public bool givDosis(Dato givesDen)
+    {
+        if (givesDen.dato >= startDen && givesDen.dato <= slutDen)
+        {
+            dates.Add(givesDen);
+            return true;
+        }
         return false;
     }
 
-    public override double doegnDosis() {
-    	// TODO: Implement!
-        return -1;
+    public override double doegnDosis()
+    {
+        int antalDage = (slutDen - startDen).Days + 1;
+        if (antalDage <= 0) return 0;  // Defensive coding, in case dates are invalid
+
+        return (getAntalGangeGivet() * antalEnheder) / (double)antalDage;
     }
 
 
@@ -38,4 +46,9 @@ public class PN : Ordination {
 	public override String getType() {
 		return "PN";
 	}
+
+    public bool givDosis(object dato)
+    {
+        throw new NotImplementedException();
+    }
 }
