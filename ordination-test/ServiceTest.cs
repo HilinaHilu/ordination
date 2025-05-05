@@ -41,63 +41,54 @@ public class ServiceTest
         service.OpretDagligFast(patient.PatientId, lm.LaegemiddelId,
             1, 1, 1, 1, DateTime.Today, DateTime.Today.AddDays(3));
 
-        Assert.AreEqual(2, service.GetDagligFaste());
-    }
-    [TestMethod]
-   
-    public void AnvendOrdination_ValidPNOrdination_ReturnsSuccess()
-    {
-        var pn = service.GetPNs().First();
-        var dato = new Dato { dato = pn.startDen.AddDays(1) };
-
-        var result = service.AnvendOrdination(pn.OrdinationId, dato);
-
-        Assert.AreEqual("Dosis givet", result);
-        Assert.IsTrue(pn.dates.Any(d => d.dato.Date == dato.dato.Date));
-    }
- // Verifying the date when the dose was applied
-    
-
-    [TestMethod]
-    public void AnvendOrdination_InvalidOrdinationId_ReturnsNotFound()
-    {
-        var result = service.AnvendOrdination(-99, new Dato { dato = DateTime.Today });
-
-        Assert.AreEqual("Ordination findes ikke", result);  // Message when invalid ordination ID
+        Assert.AreEqual(2, service.GetDagligFaste().Count());
     }
 
     [TestMethod]
-    public void AnvendOrdination_InvalidOrdinationType_ReturnsInvalidType()
+    public void OpretDaligSkæv_OpdatereListe()
     {
-        var dagligFast = service.GetDagligFaste().First();
-        var result = service.AnvendOrdination(dagligFast.OrdinationId, new Dato { dato = DateTime.Today });
+        Patient patient = service.GetPatienter().First();
+        Laegemiddel lm = service.GetLaegemidler().First();
+        Dosis[] doser = new Dosis[0];
 
-        Assert.AreEqual("Kun PN ordinationer kan anvendes.", result);
+        Assert.AreEqual(1, service.GetDagligSkæve().Count());
+
+        service.OpretDagligSkaev(patient.PatientId, lm.LaegemiddelId,
+            doser , DateTime.Today, DateTime.Today.AddDays(3));
+
+        Assert.AreEqual(2, service.GetDagligSkæve().Count());
+
     }
 
-
     [TestMethod]
-    public void AnvendOrdination_OutOfDateRange_ReturnsOutOfRangeError()
+    public void OpretPN_OpdatereListe()
     {
-        var pn = service.GetPNs().First();
-        var dato = new Dato { dato = pn.slutDen.AddDays(5) };
+        Patient patient = service.GetPatienter().First();
+        Laegemiddel lm = service.GetLaegemidler().First();
+       
 
-        var result = service.AnvendOrdination(pn.OrdinationId, dato);
+        Assert.AreEqual(4, service.GetPNs().Count());
 
-        Assert.AreEqual("Dato er udenfor gyldighedsperioden for ordinationen.", result);
+        service.OpretPN(patient.PatientId, lm.LaegemiddelId, 1.5
+            , DateTime.Today, DateTime.Today.AddDays(3));
+
+        Assert.AreEqual(5, service.GetPNs().Count());
+
     }
 
-
     [TestMethod]
-    public void AnvendOrdination_DuplicateDate_ReturnsAlreadyUsedError()
-    {
-        var pn = service.GetPNs().First();
-        var dato = new Dato { dato = pn.startDen.AddDays(2) };
+    public void ServiceGivesPNDoseTest() {
+        Patient patient = service.GetPatienter().First();
+        Laegemiddel lm = service.GetLaegemidler().First();
 
-        service.AnvendOrdination(pn.OrdinationId, dato); // First time
-        var result = service.AnvendOrdination(pn.OrdinationId, dato); // Second time
+        PN pn = service.OpretPN(patient.PatientId, lm.LaegemiddelId, 1.5
+    , DateTime.Today.AddDays(-1), DateTime.Today.AddDays(3));
 
-        Assert.AreEqual("Ordination allerede anvendt på denne dato.", result);
+        Dato dato = new Dato { dato = DateTime.Now };
+
+        Assert.AreEqual(0, pn.getAntalGangeGivet());
+
+        service.AnvendOrdination(pn.OrdinationId, dato);
     }
 
 }

@@ -113,7 +113,7 @@ public class DataService
         if (patient == null || laegemiddel == null) throw new ArgumentException("Patient eller lægemiddel ikke fundet");
 
         PN pn = new PN(startDato, slutDato, antal, laegemiddel);
-        db.PNs.Add(pn);
+        db.Ordinationer.Add(pn);
         patient.ordinationer.Add(pn);
         db.SaveChanges();
         return pn;
@@ -129,7 +129,7 @@ public class DataService
         if (patient == null || laegemiddel == null) throw new ArgumentException("Patient eller lægemiddel ikke fundet");
 
         DagligFast df = new DagligFast(startDato, slutDato, laegemiddel, antalMorgen, antalMiddag, antalAften, antalNat);
-        db.DagligFaste.Add(df);
+        db.Ordinationer.Add(df);
         patient.ordinationer.Add(df);
         db.SaveChanges();
         return df;
@@ -144,7 +144,7 @@ public class DataService
 
         DagligSkæv ds = new DagligSkæv(startDato, slutDato, laegemiddel);
         ds.doser = doser.ToList();
-        db.DagligSkæve.Add(ds);
+        db.Ordinationer.Add(ds);
         patient.ordinationer.Add(ds);
         db.SaveChanges();
         return ds;
@@ -152,11 +152,13 @@ public class DataService
 
    public string AnvendOrdination(int id, Dato dato)
 {
-    var ordination = db.PNs.FirstOrDefault(o => o.OrdinationId == id);
+    PN ordination = db.Ordinationer
+            .OfType<PN>()
+            .FirstOrDefault(o => o.OrdinationId == id)!;
     if (ordination == null)
         return "Ordination findes ikke";
 
-    if (ordination.givDosis(dato.dato))
+    if (ordination.givDosis(dato))
     {
         db.SaveChanges();
         return "Dosis givet";
@@ -181,5 +183,10 @@ public class DataService
             return laegemiddel.enhedPrKgPrDoegnNormal * patient.vaegt;
         else
             return laegemiddel.enhedPrKgPrDoegnTung * patient.vaegt;
+    }
+
+    public void OpretDagligSkæv(int patientId, int laegemiddelId, int v1, int v2, int v3, int v4, DateTime today, DateTime dateTime)
+    {
+        throw new NotImplementedException();
     }
 }

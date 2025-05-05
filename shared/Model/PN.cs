@@ -47,8 +47,4 @@ public class PN : Ordination {
 		return "PN";
 	}
 
-    public bool givDosis(object dato)
-    {
-        throw new NotImplementedException();
-    }
 }
