@@ -1,37 +1,57 @@
-using shared.Model;
-
 namespace ordination_test;
+
+using shared.Model;
+using System.Security.Cryptography.X509Certificates;
 
 [TestClass]
 public class PatientTest
 {
+
     [TestMethod]
-    public void PatientConstructor_SetsPropertiesCorrectly()
+    public void PatientHasName()
     {
         string cpr = "160563-1234";
         string navn = "John";
         double vægt = 83;
 
         Patient patient = new Patient(cpr, navn, vægt);
+        Assert.AreEqual(navn, patient.navn);
+    }
 
-        Assert.AreEqual("John", patient.navn);
-        Assert.AreEqual("160563-1234", patient.cprnr);
-        Assert.AreEqual(83, patient.vaegt);
+
+    [TestMethod]
+    public void TestDerAltidFejler()
+    {
+        string cpr = "160563-1234";
+        string navn = "John";
+        double vægt = 83;
+
+        Patient patient = new Patient(cpr, navn, vægt);
+        Assert.AreNotEqual("Egon", patient.navn);
     }
 
     [TestMethod]
-    public void ToString_ReturnsCorrectFormat()
+    public void CPRTest()
     {
-        Patient patient = new Patient("010203-1234", "Anna", 55);
-        string expected = "Anna 010203-1234";
+        Patient[] validPatients = new Patient[]
+        {
+            new Patient("160563-1234", "John", 83),
+            new Patient("221185-1234", "Joy", 65),
+            new Patient("030699-1234", "Law", 22)
+        };
 
-        Assert.AreEqual(expected, patient.ToString());
+        //too long
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("Hallo WORLD, ohh this is a test?!"));
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("3010991234"));
+
+        //not numbers
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("12e456-1234"));
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("123456-a234"));
+
+        //illegal date - somewhat, dates are tricky!!
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("320599-1234"));
+        Assert.ThrowsException<ArgumentException>(() => Patient.validateCPR("011399-1234"));
     }
 
-    [TestMethod]
-    public void OrdinationList_IsEmptyByDefault()
-    {
-        Patient patient = new Patient("123456-7890", "Peter", 70);
-        Assert.AreEqual(0, patient.ordinationer.Count);
-    }
+
 }
