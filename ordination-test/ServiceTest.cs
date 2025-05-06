@@ -1,7 +1,6 @@
 namespace ordination_test;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Service;
 using Data;
 using shared.Model;
@@ -12,13 +11,11 @@ public class ServiceTest
     private DataService service;
 
     [TestInitialize]
-    public void Setup()
+    public void SetupBeforeEachTest()
     {
-        var options = new DbContextOptionsBuilder<OrdinationContext>()
-            .UseInMemoryDatabase("test-db")
-            .Options;
-
-        var context = new OrdinationContext(options);
+        var optionsBuilder = new DbContextOptionsBuilder<OrdinationContext>();
+        optionsBuilder.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString());
+        var context = new OrdinationContext(optionsBuilder.Options);
         service = new DataService(context);
         service.SeedData();
     }
@@ -26,69 +23,71 @@ public class ServiceTest
     [TestMethod]
     public void PatientsExist()
     {
-        var patienter = service.GetPatienter();
-        Assert.IsTrue(patienter.Count > 0);
+        Assert.IsNotNull(service.GetPatienter());
+        Assert.IsTrue(service.GetPatienter().Count > 0);
     }
 
     [TestMethod]
-    public void OpretDagligFast_OpdatererListe()
+    public void OpretDagligFast()
     {
-        Patient patient = service.GetPatienter().First();
-        Laegemiddel lm = service.GetLaegemidler().First();
+        var patient = service.GetPatienter().First();
+        var lm = service.GetLaegemidler().First();
+        int initialCount = service.GetDagligFaste().Count();
 
-        Assert.AreEqual(1, service.GetDagligFaste().Count());
+        service.OpretDagligFast(patient.PatientId, lm.LaegemiddelId, 2, 2, 1, 0, DateTime.Now, DateTime.Now.AddDays(3));
 
-        service.OpretDagligFast(patient.PatientId, lm.LaegemiddelId,
-            1, 1, 1, 1, DateTime.Today, DateTime.Today.AddDays(3));
-
-        Assert.AreEqual(2, service.GetDagligFaste().Count());
+        Assert.AreEqual(initialCount + 1, service.GetDagligFaste().Count());
     }
 
     [TestMethod]
-    public void OpretDaligSkæv_OpdatereListe()
+    public void OpretDagligSkaev()
     {
-        Patient patient = service.GetPatienter().First();
-        Laegemiddel lm = service.GetLaegemidler().First();
-        Dosis[] doser = new Dosis[0];
+        var patient = service.GetPatienter().First();
+        var lm = service.GetLaegemidler().First();
+        int initialCount = service.GetDagligSkæve().Count();
 
-        Assert.AreEqual(1, service.GetDagligSkæve().Count());
+        var doser = new Dosis[]
+        {
+            new Dosis(DateTime.Now, 1),
+            new Dosis(DateTime.Now.AddHours(1), 2),
+            new Dosis(DateTime.Now.AddHours(2), 3),
+        };
 
-        service.OpretDagligSkaev(patient.PatientId, lm.LaegemiddelId,
-            doser , DateTime.Today, DateTime.Today.AddDays(3));
+        var sk = service.OpretDagligSkaev(patient.PatientId, lm.LaegemiddelId, doser, DateTime.Now, DateTime.Now.AddDays(3));
 
-        Assert.AreEqual(2, service.GetDagligSkæve().Count());
-
+        Assert.IsTrue(sk.OrdinationId > 0);
+        Assert.AreEqual(initialCount + 1, service.GetDagligSkæve().Count());
     }
 
     [TestMethod]
-    public void OpretPN_OpdatereListe()
+    public void OpretPN()
     {
-        Patient patient = service.GetPatienter().First();
-        Laegemiddel lm = service.GetLaegemidler().First();
-       
+        var patient = service.GetPatienter().First();
+        var lm = service.GetLaegemidler().First();
+        int initialCount = service.GetPNs().Count();
 
-        Assert.AreEqual(4, service.GetPNs().Count());
+        var pn = service.OpretPN(patient.PatientId, lm.LaegemiddelId, 2, DateTime.Now, DateTime.Now.AddDays(3));
 
-        service.OpretPN(patient.PatientId, lm.LaegemiddelId, 1.5
-            , DateTime.Today, DateTime.Today.AddDays(3));
-
-        Assert.AreEqual(5, service.GetPNs().Count());
-
+        Assert.IsTrue(pn.OrdinationId > 0);
+        Assert.AreEqual(initialCount + 1, service.GetPNs().Count());
     }
 
     [TestMethod]
-    public void ServiceGivesPNDoseTest() {
-        Patient patient = service.GetPatienter().First();
-        Laegemiddel lm = service.GetLaegemidler().First();
+    public void AnvendPN()
+    {
+        var patient = service.GetPatienter().First();
+        var lm = service.GetLaegemidler().First();
 
-        PN pn = service.OpretPN(patient.PatientId, lm.LaegemiddelId, 1.5
-    , DateTime.Today.AddDays(-1), DateTime.Today.AddDays(3));
-
-        Dato dato = new Dato { dato = DateTime.Now };
+        var pn = service.OpretPN(patient.PatientId, lm.LaegemiddelId, 2, DateTime.Now.AddDays(-1), DateTime.Now.AddDays(3));
+        int id = pn.OrdinationId;
 
         Assert.AreEqual(0, pn.getAntalGangeGivet());
 
-        service.AnvendOrdination(pn.OrdinationId, dato);
-    }
+        var response = service.AnvendOrdination(id, new Dato { dato = DateTime.Now });
 
+        Assert.AreEqual("dosis have been given", response);
+
+        pn = service.GetPNs().FirstOrDefault(x => x.OrdinationId == id);
+        Assert.AreEqual(1, pn.getAntalGangeGivet());
+    }
 }

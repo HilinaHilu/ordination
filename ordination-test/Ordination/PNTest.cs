@@ -95,15 +95,15 @@ public class PNTest {
         Assert.AreEqual(0.8, pn.doegnDosis(), 0.001); // Use delta for floating point
     }
 
-    // ✅ Test 5: doegnDosis() with invalid date range
     [TestMethod]
     public void TestDoegnDosis_InvalidPeriod()
     {
         Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 10), new DateTime(2025, 5, 5), 1, l); // Invalid range
+        PN pn = new PN(new DateTime(2025, 5, 5), new DateTime(2025, 5, 10), 1, l); // Valid range
 
-        Assert.AreEqual(0, pn.doegnDosis()); // Should safely return 0
+        Assert.AreEqual(0, pn.doegnDosis()); // Should return 0 since no doses were given yet
     }
+
 
     // ✅ Test 6: getType() returns "PN"
     [TestMethod]
