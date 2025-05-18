@@ -1,51 +1,46 @@
-namespace shared.Model;
+using shared.Model;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-public class DagligSkæv : Ordination
+namespace shared.Model
 {
-    public List<Dosis> doser { get; set; } = new List<Dosis>();
-
-    public DagligSkæv(DateTime startDen, DateTime slutDen, Laegemiddel laegemiddel) : base(laegemiddel, startDen, slutDen)
+    public class DagligSkæv : Ordination
     {
-    }
+        public List<Dosis> doser { get; set; } = new List<Dosis>();
 
-    public DagligSkæv(DateTime startDen, DateTime slutDen, Laegemiddel laegemiddel, Dosis[] doser) : base(laegemiddel, startDen, slutDen)
-    {
-        this.doser = doser.ToList();
-    }
+        public DagligSkæv(DateTime startDen, DateTime slutDen, Laegemiddel laegemiddel) : base(laegemiddel, startDen, slutDen) { }
 
-    public DagligSkæv() : base(null!, new DateTime(), new DateTime())
-    {
-    }
-
-    public void opretDosis(DateTime tid, double antal)
-    {
-        doser.Add(new Dosis(tid, antal));
-    }
-
-    public override double samletDosis()
-    {
-        return base.antalDage() * doegnDosis();
-    }
-
-    public override double doegnDosis()
-    {
-        // Sum the 'antal' for each dose in the list 'doser'
-        double totalDosis = 0;
-        foreach (var dosis in doser)
+        public DagligSkæv(DateTime startDen, DateTime slutDen, Laegemiddel laegemiddel, Dosis[] doser) : base(laegemiddel, startDen, slutDen)
         {
-            totalDosis += dosis.antal;  // Assuming 'dosis' holds the amount for each dose
+            this.doser = doser.ToList();
         }
-        return totalDosis;
-    }
 
-    public override String getType()
-    {
-        return "DagligSkæv";
-    }
+        public DagligSkæv() : base(null!, new DateTime(), new DateTime()) { }
 
-    public void opretDosis(Dosis d)
-    {
-        // Fixed: Adds the given dose to the list of doses.
-        doser.Add(d);
+        public void opretDosis(DateTime tid, double antal)
+        {
+            doser.Add(new Dosis(tid, antal));
+        }
+
+        public void opretDosis(Dosis d)
+        {
+            doser.Add(d);
+        }
+
+        public override double samletDosis()
+        {
+            return base.antalDage() * doegnDosis();
+        }
+
+        public override double doegnDosis()
+        {
+            return doser.Sum(d => d.antal);
+        }
+
+        public override string getType()
+        {
+            return "DagligSkæv";
+        }
     }
 }

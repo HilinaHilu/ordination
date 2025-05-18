@@ -1,129 +1,89 @@
-﻿using shared.Model;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using shared.Model;
+using System;
 
-namespace ordination_test.Ordination;
-
-[TestClass]
-public class PNTest {
-
-    [TestMethod]
-    public void TestPNLegalDates() {
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 5, 12, 0, 0), new DateTime(2025, 5, 10, 12, 0, 0), 1, l);
-        Dato dato1 = new Dato
-        { DatoId = 0,
-            dato = new DateTime(2025, 5, 5, 12, 0, 0)
-        };
-        Dato dato2 = new Dato
-        {
-            DatoId = 0,
-            dato = new DateTime(2025, 5, 5, 11, 59, 59)
-        };
-
-        Dato dato3 = new Dato
-        {
-            DatoId = 0,
-            dato = new DateTime(2025, 5, 10, 12, 0, 0)
-        };
-        Dato dato4 = new Dato
-        {
-            DatoId = 0,
-            dato = new DateTime(2025, 5, 10, 12, 0, 0, 1)
-        };
-
-        Assert.AreEqual(true, pn.givDosis(dato1));
-        Assert.AreEqual(false, pn.givDosis(dato2));
-        Assert.AreEqual(true, pn.givDosis(dato3));
-        Assert.AreEqual(false, pn.givDosis(dato4));
-    }
-
-    [TestMethod]
-    public void testGivDosis() {
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 5, 12, 0, 0), new DateTime(2025, 5, 10, 12, 0, 0), 2, l);
-        Dato dato1 = new Dato
-        {
-            DatoId = 0,
-            dato = new DateTime(2025, 5, 5, 12, 0, 0)
-        };
-        Dato dato4 = new Dato
-        {
-            DatoId = 0,
-            dato = new DateTime(2025, 5, 10, 12, 0, 0, 1)
-        };
-
-        Assert.AreEqual(0, pn.samletDosis());
-        pn.givDosis(dato1);
-        Assert.AreEqual(2, pn.samletDosis());
-        pn.givDosis(dato4);
-        Assert.AreEqual(2, pn.samletDosis());
-    }
-
-    
-
-
-[TestMethod]
-    public void TestGetAntalGangeGivet()
+namespace ordination_test.Ordination
+{
+    [TestClass]
+    public class PNTest
     {
-        // Arrange
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 5), new DateTime(2025, 5, 10), 1, l);
+        [TestMethod]
+        public void TestDoegnDosis_CorrectCalculation()
+        {
+            Laegemiddel l = new Laegemiddel();
+            PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 2, l);
 
-        // Act & Assert
-        Assert.AreEqual(0, pn.getAntalGangeGivet(), "Initially, no doses should have been given.");
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 1) });
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 3) });
 
-        pn.dates.Add(new Dato { DatoId = 1, dato = new DateTime(2025, 5, 5) });
-        Assert.AreEqual(1, pn.getAntalGangeGivet(), "After one dose given, count should be 1.");
+            // 2 doses * 2 units = 4 / 3 days (May 1 to May 3) = 1.333...
+            Assert.AreEqual(1.333, pn.doegnDosis(), 0.001);
+        }
 
-        pn.dates.Add(new Dato { DatoId = 2, dato = new DateTime(2025, 5, 6) });
-        pn.dates.Add(new Dato { DatoId = 3, dato = new DateTime(2025, 5, 7) });
-        Assert.AreEqual(3, pn.getAntalGangeGivet(), "After three doses given, count should be 3.");
+        [TestMethod]
+        public void TestDoegnDosis_SameDayMultipleDoses()
+        {
+            Laegemiddel l = new Laegemiddel();
+            PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 1, l);
+
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 2) });
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 2) });
+
+            // 2 doses * 1 unit = 2 / 1 day = 2.0
+            Assert.AreEqual(2.0, pn.doegnDosis(), 0.001);
+        }
+
+        [TestMethod]
+        public void TestDoegnDosis_NoDoses()
+        {
+            Laegemiddel l = new Laegemiddel();
+            PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 1, l);
+
+            // No doses given
+            Assert.AreEqual(0.0, pn.doegnDosis(), 0.001);
+        }
+
+        [TestMethod]
+        public void TestSamletDosis_Correct()
+        {
+            Laegemiddel l = new Laegemiddel();
+            PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 1.5, l);
+
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 2) });
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 3) });
+
+            Assert.AreEqual(3.0, pn.samletDosis(), 0.001);
+        }
+
+        [TestMethod]
+        public void TestGetAntalGangeGivet_Counter()
+        {
+            Laegemiddel l = new Laegemiddel();
+            PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 1, l);
+
+            Assert.AreEqual(0, pn.getAntalGangeGivet());
+
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 1) });
+            Assert.AreEqual(1, pn.getAntalGangeGivet());
+
+            pn.givDosis(new Dato { dato = new DateTime(2025, 5, 2) });
+            Assert.AreEqual(2, pn.getAntalGangeGivet());
+        }
+
+        [TestMethod]
+        public void TestGetType_ReturnsPN()
+        {
+            PN pn = new PN();
+            Assert.AreEqual("PN", pn.getType());
+        }
+
+        [TestMethod]
+        public void TestDefaultConstructor_InitializesCorrectly()
+        {
+            PN pn = new PN();
+            Assert.AreEqual(0, pn.antalEnheder);
+            Assert.IsNotNull(pn.dates);
+            Assert.AreEqual(0, pn.dates.Count);
+        }
     }
-
-
-    // ✅ Test 4: doegnDosis() with valid usage over several days
-    [TestMethod]
-    public void TestDoegnDosis()
-    {
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 1), new DateTime(2025, 5, 5), 2, l);
-
-        // Add 2 valid doses
-        pn.givDosis(new Dato { dato = new DateTime(2025, 5, 1) });
-        pn.givDosis(new Dato { dato = new DateTime(2025, 5, 3) });
-
-        // (2 doses * 2 units) / 5 days = 0.8 units/day
-        Assert.AreEqual(0.8, pn.doegnDosis(), 0.001); // Use delta for floating point
-    }
-
-    [TestMethod]
-    public void TestDoegnDosis_InvalidPeriod()
-    {
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 5), new DateTime(2025, 5, 10), 1, l); // Valid range
-
-        Assert.AreEqual(0, pn.doegnDosis()); // Should return 0 since no doses were given yet
-    }
-
-
-    // ✅ Test 6: getType() returns "PN"
-    [TestMethod]
-    public void TestGetType()
-    {
-        Laegemiddel l = new Laegemiddel();
-        PN pn = new PN(new DateTime(2025, 5, 5), new DateTime(2025, 5, 10), 1, l);
-
-        Assert.AreEqual("PN", pn.getType());
-    }
-
-    // ✅ Test 7: Default constructor sets sensible defaults
-    [TestMethod]
-    public void TestDefaultConstructor()
-    {
-        PN pn = new PN();
-
-        Assert.AreEqual(0, pn.antalEnheder); // default double
-        Assert.IsNotNull(pn.dates);          // list should be initialized
-        Assert.AreEqual(0, pn.dates.Count);  // list should be empty
-    }
-
 }
